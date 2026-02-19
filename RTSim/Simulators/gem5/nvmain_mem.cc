@@ -50,7 +50,8 @@
 #include "base/statistics.hh"
 #include "debug/NVMain.hh"
 #include "debug/NVMainMin.hh"
-#include "config/the_isa.hh"
+// #include "config/the_isa.hh"
+#include "config/kvm_isa.hh"
 
 using namespace NVM;
 
@@ -63,7 +64,7 @@ using namespace NVM;
 NVMainMemory *NVMainMemory::masterInstance = NULL;
 
 NVMainMemory::NVMainMemory(const Params *p)
-    : AbstractMemory(p), clockEvent(this), respondEvent(this),
+    : AbstractMemory(*p), clockEvent(this), respondEvent(this),
       drainManager(NULL), lat(p->atomic_latency),
       lat_var(p->atomic_variance), nvmain_atomic(p->atomic_mode),
       NVMainWarmUp(p->NVMainWarmUp), port(name() + ".port", *this)
@@ -163,8 +164,8 @@ NVMainMemory::init()
         statPrinter.forgdb = this;
 
         //registerExitCallback( &statPrinter );
-        ::Stats::registerDumpCallback( &statPrinter );
-        ::Stats::registerResetCallback( &statReseter );
+        gem5::statistics::registerDumpCallback( statPrinter.process() );
+        gem5::statistics::registerResetCallback( statReseter.process() );
 
         SetEventQueue( m_nvmainEventQueue );
         SetStats( m_statsPtr );
@@ -241,18 +242,18 @@ void NVMainMemory::wakeup()
 }
 
 
-BaseSlavePort &
+Port &
 NVMainMemory::getSlavePort(const std::string& if_name, PortID idx)
 {
     if (if_name != "port") {
-        return MemObject::getSlavePort(if_name, idx);
+        return SimObject::getPort(if_name, idx);
     } else {
         return port;
     }
 }
 
 
-void NVMainMemory::NVMainStatPrinter::process()
+std::function<void()> NVMainMemory::NVMainStatPrinter::process()
 {
     assert(nvmainPtr != NULL);
 
@@ -267,7 +268,7 @@ void NVMainMemory::NVMainStatPrinter::process()
 }
 
 
-void NVMainMemory::NVMainStatReseter::process()
+std::function<void()> NVMainMemory::NVMainStatReseter::process()
 {
     assert(nvmainPtr != NULL);
 
@@ -277,7 +278,7 @@ void NVMainMemory::NVMainStatReseter::process()
 
 
 NVMainMemory::MemoryPort::MemoryPort(const std::string& _name, NVMainMemory& _memory)
-    : SlavePort(_name, &_memory), memory(_memory), forgdb(_memory)
+    : ResponsePort(_name, &_memory), memory(_memory), forgdb(_memory)
 {
 
 }
@@ -301,8 +302,8 @@ NVMainMemory::SetRequestData(NVMainRequest *request, PacketPtr pkt)
 
     if (pkt->isRead())
     {
-        Request *dataReq = new Request(pkt->getAddr(), pkt->getSize(), 0, Request::funcMasterId);
-        Packet *dataPkt = new Packet(dataReq, MemCmd::ReadReq);
+        RequestPtr dataReq = std::make_shared<Request>(pkt->getAddr(), pkt->getSize(), 0, 0);
+        Packet *dataPkt = new Packet(dataReq, MemCmd::ReadReq, pkt->getSize());
         dataPkt->allocate();
         doFunctionalAccess(dataPkt);
 
@@ -316,13 +317,12 @@ NVMainMemory::SetRequestData(NVMainRequest *request, PacketPtr pkt)
         }
 
         delete dataPkt;
-        delete dataReq;
         delete [] hostAddr;
     }
     else
     {
-        Request *dataReq = new Request(pkt->getAddr(), pkt->getSize(), 0, Request::funcMasterId);
-        Packet *dataPkt = new Packet(dataReq, MemCmd::ReadReq);
+        RequestPtr dataReq = std::make_shared<Request>(pkt->getAddr(), pkt->getSize(), 0, 0);
+        Packet *dataPkt = new Packet(dataReq, MemCmd::ReadReq, pkt->getSize());
         dataPkt->allocate();
         doFunctionalAccess(dataPkt);
 
@@ -339,7 +339,6 @@ NVMainMemory::SetRequestData(NVMainRequest *request, PacketPtr pkt)
         }
 
         delete dataPkt;
-        delete dataReq;
         delete [] hostAddrT;
         delete [] hostAddr;
     }
@@ -358,7 +357,7 @@ NVMainMemory::MemoryPort::recvAtomic(PacketPtr pkt)
     Tick latency = memory.lat;
 
     if (memory.lat_var != 0)
-        latency += random_mt.random<Tick>(0, memory.lat_var);
+        latency += rand() % (memory.lat_var + 1);
 
     /*
      *  if NVMain also needs the packet to warm up the inline cache, create the request
@@ -411,7 +410,8 @@ NVMainMemory::MemoryPort::recvFunctional(PacketPtr pkt)
 
     for( std::deque<PacketPtr>::iterator i = memory.responseQueue.begin();
          i != memory.responseQueue.end(); ++i )
-        pkt->checkFunctional(*i);
+        // pkt->checkFunctional(*i);
+        pkt->trySatisfyFunctional(*i);
 
     pkt->popLabel();
 }
@@ -892,7 +892,7 @@ void NVMainMemory::tick( )
 
 
 NVMainMemory *
-NVMainMemoryParams::create()
+NVMainMemoryParams::create() const
 {
     return new NVMainMemory(this);
 }

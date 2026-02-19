@@ -64,11 +64,13 @@
 #include "src/SimInterface.h"
 #include "src/TagGenerator.h"
 
-class NVMainMemory : public AbstractMemory, public NVM::NVMObject
+using namespace gem5;
+
+class NVMainMemory : public memory::AbstractMemory, public NVM::NVMObject
 {
   private:
 
-    class MemoryPort : public SlavePort
+    class MemoryPort : public ResponsePort
     {
         friend class NVMainMemory;
 
@@ -104,7 +106,7 @@ class NVMainMemory : public AbstractMemory, public NVM::NVMObject
     void ScheduleClockEvent( Tick );
     void SetRequestData(NVM::NVMainRequest *request, PacketPtr pkt);
 
-    class NVMainStatPrinter : public Callback
+    class NVMainStatPrinter
     {
         friend class NVMainMemory;
 
@@ -112,16 +114,16 @@ class NVMainMemory : public AbstractMemory, public NVM::NVMObject
         NVMainMemory *memory;
         NVMainMemory *forgdb;
 
-        void process();
+        std::function<void()> process();
 
         NVM::NVMain *nvmainPtr;
         std::ofstream statStream;
     };
 
-    class NVMainStatReseter : public Callback
+    class NVMainStatReseter 
     {
       public:
-        void process();
+        std::function<void()> process();
 
         NVM::NVMain *nvmainPtr;
     };
@@ -173,22 +175,22 @@ class NVMainMemory : public AbstractMemory, public NVM::NVMObject
     NVMainMemory(const Params *p);
     virtual ~NVMainMemory();
 
-    BaseSlavePort& getSlavePort(const std::string& if_name,
+    Port& getSlavePort(const std::string& if_name,
                                 PortID idx = InvalidPortID);
-    void init();
-    void startup();
+    void init() override;
+    void startup() override;
     void wakeup();
 
     const Params *
     params() const
     {
-        return dynamic_cast<const Params *>(_params);
+        return &static_cast<const Params &>(_params);
     }
 
 
-    bool RequestComplete( NVM::NVMainRequest *req );
+    bool RequestComplete( NVM::NVMainRequest *req ) override;
 
-    void Cycle(NVM::ncycle_t) { }
+    void Cycle(NVM::ncycle_t) override { }
 
     DrainState drain() override;
 

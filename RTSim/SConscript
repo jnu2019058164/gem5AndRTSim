@@ -33,7 +33,7 @@ import os, sys
 import subprocess
 
 from os.path import basename
-#from gem5_scons import Transform
+from gem5_scons import Transform
 
 
 HG_COMMAND = 'hg'
@@ -49,10 +49,10 @@ if 'TARGET_ISA' in env and env['TARGET_ISA'] == 'no':
 
     env.Append(CPPPATH=Dir('.'))
 
-if 'TARGET_ISA' in env and not 'NVMAIN_BUILD' in env:
-    def NVMainSource(src):
-        return Source(src)
-    Export('NVMainSource')
+# if 'TARGET_ISA' in env and not 'NVMAIN_BUILD' in env:
+def NVMainSource(src):
+    return Source(src)
+Export('NVMainSource')
 
 # Common source files for any build
 NVMainSource('NVM/nvmain.cpp')
@@ -68,7 +68,8 @@ if 'NVMAIN_BUILD' in env:
     NVMainSource('traceReader/RubyTrace/RubyTraceReader.cpp')
     NVMainSource('traceReader/NVMainTrace/NVMainTraceReader.cpp')
 
-elif 'TARGET_ISA' in env:
+# elif 'TARGET_ISA' in env:
+elif True:
     # Assume that this is a gem5 extras build if this is set.
     NVMainSource('SimInterface/Gem5Interface/Gem5Interface.cpp')
 
