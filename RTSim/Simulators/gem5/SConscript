@@ -35,10 +35,12 @@ Import('*')
 if not 'NVMAIN_BUILD' in env:
     env.Append(CPPPATH=Dir('.'))
 
-    Source('nvmain_mem.cc')
+    # Source('nvmain_mem.cc')
+    Source('./tmp/nvmain_mem_interface.cc')
 
     DebugFlag('NVMain')
     DebugFlag('NVMainMin')
 
-    SimObject('NVMainMemory.py',sim_objects=['NVMainMemory'])
+    # SimObject('NVMainMemory.py',sim_objects=['NVMainMemory'])
+    SimObject('./tmp/NVMainMemInterface.py',sim_objects=['NVMainMemInterface'])
 

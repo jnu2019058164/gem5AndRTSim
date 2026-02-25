@@ -1,0 +1,5 @@
+[Config]
+BusWidth=64
+tBURST=4
+RATE=2000
+CPUFreq=2000
