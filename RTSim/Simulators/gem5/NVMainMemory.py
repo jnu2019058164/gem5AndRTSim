@@ -42,9 +42,9 @@ class NVMainMemory(AbstractMemory):
     atomic_latency = Param.Latency('30ns', "Request latency in atomic mode")
     atomic_variance = Param.Latency('30ns', "Request latency in atomic mode")
 
-    config = Param.String("", "")
-    configparams = Param.String("", "")
-    configvalues = Param.String("", "")
+    config = Param.String("RTSim/Config/PCM_ISSCC_2012_4GB.config", "NVMain configuration file path")
+    configparams = Param.String("", "NVMain configuration parameters")
+    configvalues = Param.String("", "NVMain configuration values")
     NVMainWarmUp = Param.Bool(False, "Enable to warm up the internal cache in NVMain")
 
 

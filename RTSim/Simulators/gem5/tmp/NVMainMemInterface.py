@@ -41,10 +41,24 @@ class NVMainMemInterface(MemInterface):
     atomic_latency = Param.Latency('30ns', "Request latency in atomic mode")
     atomic_variance = Param.Latency('30ns', "Request latency in atomic mode")
 
-    config = Param.String("", "")
-    configparams = Param.String("", "")
-    configvalues = Param.String("", "")
+    config = Param.String("RTSim/Config/PCM_ISSCC_2012_4GB.config", "NVMain configuration file path")
+    configparams = Param.String("", "NVMain configuration parameters")
+    configvalues = Param.String("", "NVMain configuration values")
     NVMainWarmUp = Param.Bool(False, "Enable to warm up the internal cache in NVMain")
+
+    # MemInterface required parameters with default values
+    device_size = Param.MemorySize('8GiB', "Size of memory device")
+    device_bus_width = Param.Unsigned(64, "data bus width in bits for each memory device/chip")
+    burst_length = Param.Unsigned(8, "Burst lenght (BL) in beats")
+    device_rowbuffer_size = Param.MemorySize('8KiB', "Page (row buffer) size per device/chip")
+    devices_per_rank = Param.Unsigned(8, "Number of devices/chips per rank")
+    ranks_per_channel = Param.Unsigned(1, "Number of ranks per channel")
+    banks_per_rank = Param.Unsigned(16, "Number of banks per rank")
+    tCK = Param.Latency('1ns', "Clock period")
+    tBURST = Param.Latency('4ns', "Burst duration")
+    tWTR = Param.Latency('4ns', "Write to read, same rank switching time")
+    tRTW = Param.Latency('4ns', "Read to write, same rank switching time")
+    tCS = Param.Latency('4ns', "Rank to rank switching time")
 
     # Add controller property to create MemCtrl instance
     def controller(self):

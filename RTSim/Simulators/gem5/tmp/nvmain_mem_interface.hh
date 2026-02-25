@@ -92,7 +92,7 @@ class NVMainMemInterface : public MemInterface, public NVM::NVMObject
         NVMainMemInterface *memory;
         NVMainMemInterface *forgdb;
 
-        std::function<void()> process();
+        void process();
 
         NVM::NVMain *nvmainPtr;
         std::ofstream statStream;
@@ -101,7 +101,7 @@ class NVMainMemInterface : public MemInterface, public NVM::NVMObject
     class NVMainStatReseter 
     {
       public:
-        std::function<void()> process();
+        void process();
 
         NVM::NVMain *nvmainPtr;
     };

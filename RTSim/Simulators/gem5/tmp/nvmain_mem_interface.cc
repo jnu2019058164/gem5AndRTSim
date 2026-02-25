@@ -132,46 +132,101 @@ NVMainMemInterface::~NVMainMemInterface()
 void
 NVMainMemInterface::init()
 {
+    std::cout << "NVMainMemInterface::init() starting" << std::endl;
+    
     if( masterInstance == NULL )
     {
         masterInstance = this;
+        std::cout << "Master instance set to this" << std::endl;
 
         m_nvmainPtr = new NVM::NVMain( );
+        std::cout << "Created NVMain object" << std::endl;
+        
         m_statsPtr = new NVM::Stats( );
+        std::cout << "Created Stats object" << std::endl;
+        
         m_nvmainSimInterface = new NVM::Gem5Interface( );
+        std::cout << "Created Gem5Interface object" << std::endl;
+        
         m_nvmainEventQueue = new NVM::EventQueue( );
+        std::cout << "Created EventQueue object" << std::endl;
+        
         m_nvmainGlobalEventQueue = new NVM::GlobalEventQueue( );
+        std::cout << "Created GlobalEventQueue object" << std::endl;
+        
         m_tagGenerator = new NVM::TagGenerator( 1000 );
+        std::cout << "Created TagGenerator object" << std::endl;
+
+        if (!m_nvmainConfig) {
+            std::cerr << "Error: m_nvmainConfig is NULL" << std::endl;
+            return;
+        }
+        std::cout << "m_nvmainConfig is not NULL" << std::endl;
 
         m_nvmainConfig->SetSimInterface( m_nvmainSimInterface );
+        std::cout << "Set SimInterface" << std::endl;
 
         statPrinter.nvmainPtr = m_nvmainPtr;
         statReseter.nvmainPtr = m_nvmainPtr;
+        std::cout << "Set stat pointers" << std::endl;
 
         if( m_nvmainConfig->KeyExists( "StatsFile" ) )
         {
             statPrinter.statStream.open( m_nvmainConfig->GetString( "StatsFile" ).c_str(),
                                          std::ofstream::out | std::ofstream::app );
+            std::cout << "Opened stats file" << std::endl;
         }
 
         statPrinter.memory = this;
         statPrinter.forgdb = this;
+        std::cout << "Set stat printer memory pointers" << std::endl;
 
         //registerExitCallback( &statPrinter );
-        gem5::statistics::registerDumpCallback( statPrinter.process() );
-        gem5::statistics::registerResetCallback( statReseter.process() );
+        gem5::statistics::registerDumpCallback([this]() { statPrinter.process(); });
+        gem5::statistics::registerResetCallback([this]() { statReseter.process(); });
+        std::cout << "Registered dump and reset callbacks" << std::endl;
 
         SetEventQueue( m_nvmainEventQueue );
         SetStats( m_statsPtr );
         SetTagGenerator( m_tagGenerator );
+        std::cout << "Set event queue, stats, and tag generator" << std::endl;
 
-        m_nvmainGlobalEventQueue->SetFrequency( m_nvmainConfig->GetEnergy( "CPUFreq" ) * 1000000.0 );
-        SetGlobalEventQueue( m_nvmainGlobalEventQueue );
+        // Set event queue on NVMain object before adding it to the global event queue
+        if (m_nvmainPtr) {
+            m_nvmainPtr->SetEventQueue( m_nvmainEventQueue );
+            std::cout << "Set event queue on NVMain" << std::endl;
+            
+            m_nvmainPtr->SetStats( m_statsPtr );
+            std::cout << "Set stats on NVMain" << std::endl;
+            
+            m_nvmainPtr->SetTagGenerator( m_tagGenerator );
+            std::cout << "Set tag generator on NVMain" << std::endl;
+        } else {
+            std::cerr << "Error: m_nvmainPtr is NULL" << std::endl;
+            return;
+        }
+
+        if (m_nvmainGlobalEventQueue && m_nvmainConfig) {
+            if (m_nvmainConfig->KeyExists("CPUFreq")) {
+                m_nvmainGlobalEventQueue->SetFrequency( m_nvmainConfig->GetValue( "CPUFreq" ) * 1000000.0 );
+                std::cout << "Set frequency from config" << std::endl;
+            } else {
+                // Set default frequency if CPUFreq is not defined
+                m_nvmainGlobalEventQueue->SetFrequency( 1000000000.0 ); // 1GHz
+                std::cout << "Set default frequency" << std::endl;
+            }
+            SetGlobalEventQueue( m_nvmainGlobalEventQueue );
+            std::cout << "Set global event queue" << std::endl;
+        } else {
+            std::cerr << "Error: m_nvmainGlobalEventQueue or m_nvmainConfig is NULL" << std::endl;
+            return;
+        }
 
         // TODO: Confirm global event queue frequency is the same as this SimObject's clock.
 
         /*  Add any specified hooks */
         std::vector<std::string>& hookList = m_nvmainConfig->GetHooks( );
+        std::cout << "Number of hooks: " << hookList.size() << std::endl;
 
         for( size_t i = 0; i < hookList.size( ); i++ )
         {
@@ -182,8 +237,13 @@ NVMainMemInterface::init()
             if( hook != NULL )
             {
                 AddHook( hook );
+                std::cout << "Added hook " << hookList[i] << std::endl;
+                
                 hook->SetParent( this );
+                std::cout << "Set parent for hook " << hookList[i] << std::endl;
+                
                 hook->Init( m_nvmainConfig );
+                std::cout << "Initialized hook " << hookList[i] << std::endl;
             }
             else
             {
@@ -193,18 +253,34 @@ NVMainMemInterface::init()
         }
 
         /* Setup child and parent modules. */
-        AddChild( m_nvmainPtr );
-        m_nvmainPtr->SetParent( this );
-        m_nvmainGlobalEventQueue->AddSystem( m_nvmainPtr, m_nvmainConfig );
-        m_nvmainPtr->SetConfig( m_nvmainConfig );
+        if (m_nvmainPtr) {
+            AddChild( m_nvmainPtr );
+            std::cout << "Added NVMain as child" << std::endl;
+            
+            m_nvmainPtr->SetParent( this );
+            std::cout << "Set parent for NVMain" << std::endl;
+            
+            if (m_nvmainGlobalEventQueue && m_nvmainConfig) {
+                std::cout << "About to add system to global event queue" << std::endl;
+                m_nvmainGlobalEventQueue->AddSystem( m_nvmainPtr, m_nvmainConfig );
+                std::cout << "Added system to global event queue" << std::endl;
+            }
+            
+            m_nvmainPtr->SetConfig( m_nvmainConfig );
+            std::cout << "Set config for NVMain" << std::endl;
+        }
 
         masterInstance->allInstances.push_back(this);
+        std::cout << "Added this to allInstances" << std::endl;
     }
     else
     {
         masterInstance->allInstances.push_back(this);
         masterInstance->otherInstance = this;
+        std::cout << "Added this to existing master's allInstances" << std::endl;
     }
+    
+    std::cout << "NVMainMemInterface::init() completed" << std::endl;
 }
 
 
@@ -236,9 +312,17 @@ void NVMainMemInterface::wakeup()
 }
 
 
-std::function<void()> NVMainMemInterface::NVMainStatPrinter::process()
+void NVMainMemInterface::NVMainStatPrinter::process()
 {
-    assert(nvmainPtr != NULL);
+    if (nvmainPtr == NULL || memory == NULL) {
+        std::cerr << "Error: nvmainPtr or memory is NULL in stat printer" << std::endl;
+        return;
+    }
+
+    if (memory->m_nvmainGlobalEventQueue == NULL) {
+        std::cerr << "Error: m_nvmainGlobalEventQueue is NULL in stat printer" << std::endl;
+        return;
+    }
 
     assert(curTick() >= memory->lastWakeup);
     Tick stepCycles = (curTick() - memory->lastWakeup) / memory->clock;
@@ -251,9 +335,12 @@ std::function<void()> NVMainMemInterface::NVMainStatPrinter::process()
 }
 
 
-std::function<void()> NVMainMemInterface::NVMainStatReseter::process()
+void NVMainMemInterface::NVMainStatReseter::process()
 {
-    assert(nvmainPtr != NULL);
+    if (nvmainPtr == NULL) {
+        std::cerr << "Error: nvmainPtr is NULL in stat reseter" << std::endl;
+        return;
+    }
 
     nvmainPtr->ResetStats();
     nvmainPtr->GetStats()->ResetAll( );

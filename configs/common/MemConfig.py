@@ -66,6 +66,32 @@ def create_mem_intf(intf, r, i, intlv_bits, intlv_size, xor_low_bit):
     # mapping and row-buffer size
     interface = intf()
 
+    # Set default values for required parameters
+    if not hasattr(interface, 'banks_per_rank') or interface.banks_per_rank is None:
+        interface.banks_per_rank = 16
+    if not hasattr(interface, 'device_size') or interface.device_size is None:
+        interface.device_size = '8GiB'
+    if not hasattr(interface, 'device_bus_width') or interface.device_bus_width is None:
+        interface.device_bus_width = 64
+    if not hasattr(interface, 'burst_length') or interface.burst_length is None:
+        interface.burst_length = 8
+    if not hasattr(interface, 'device_rowbuffer_size') or interface.device_rowbuffer_size is None:
+        interface.device_rowbuffer_size = '8KiB'
+    if not hasattr(interface, 'devices_per_rank') or interface.devices_per_rank is None:
+        interface.devices_per_rank = 8
+    if not hasattr(interface, 'ranks_per_channel') or interface.ranks_per_channel is None:
+        interface.ranks_per_channel = 1
+    if not hasattr(interface, 'tCK') or interface.tCK is None:
+        interface.tCK = '1ns'
+    if not hasattr(interface, 'tBURST') or interface.tBURST is None:
+        interface.tBURST = '4ns'
+    if not hasattr(interface, 'tWTR') or interface.tWTR is None:
+        interface.tWTR = '4ns'
+    if not hasattr(interface, 'tRTW') or interface.tRTW is None:
+        interface.tRTW = '4ns'
+    if not hasattr(interface, 'tCS') or interface.tCS is None:
+        interface.tCS = '4ns'
+
     # Only do this for DRAMs
     if issubclass(intf, m5.objects.DRAMInterface):
         # If the channel bits are appearing after the column
