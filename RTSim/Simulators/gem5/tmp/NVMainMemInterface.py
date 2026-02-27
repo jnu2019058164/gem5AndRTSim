@@ -41,7 +41,7 @@ class NVMainMemInterface(MemInterface):
     atomic_latency = Param.Latency('30ns', "Request latency in atomic mode")
     atomic_variance = Param.Latency('30ns', "Request latency in atomic mode")
 
-    config = Param.String("RTSim/Config/PCM_ISSCC_2012_4GB.config", "NVMain configuration file path")
+    config = Param.String("RTSim/Config/RM.config", "NVMain configuration file path")
     configparams = Param.String("", "NVMain configuration parameters")
     configvalues = Param.String("", "NVMain configuration values")
     NVMainWarmUp = Param.Bool(False, "Enable to warm up the internal cache in NVMain")
@@ -53,7 +53,7 @@ class NVMainMemInterface(MemInterface):
     device_rowbuffer_size = Param.MemorySize('8KiB', "Page (row buffer) size per device/chip")
     devices_per_rank = Param.Unsigned(8, "Number of devices/chips per rank")
     ranks_per_channel = Param.Unsigned(1, "Number of ranks per channel")
-    banks_per_rank = Param.Unsigned(16, "Number of banks per rank")
+    banks_per_rank = Param.Unsigned(1, "Number of banks per rank")
     tCK = Param.Latency('1ns', "Clock period")
     tBURST = Param.Latency('4ns', "Burst duration")
     tWTR = Param.Latency('4ns', "Write to read, same rank switching time")
