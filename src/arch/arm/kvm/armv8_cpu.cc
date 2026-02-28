@@ -37,6 +37,8 @@
 
 #include "arch/arm/kvm/armv8_cpu.hh"
 
+#include "arch/arm/regs/misc_info.hh"
+
 #include <linux/kvm.h>
 
 #include "arch/arm/regs/int.hh"
